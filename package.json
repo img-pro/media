@@ -1,0 +1,27 @@
+{
+  "name": "@img-pro/media-gallery",
+  "version": "0.1.0",
+  "description": "Minimalist media gallery for Img.pro",
+  "type": "module",
+  "license": "MIT",
+  "author": "Img.pro",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "deploy": "npm run build && wrangler pages deploy dist --project-name=img-media-gallery",
+    "deploy:preview": "npm run build && wrangler pages deploy dist --project-name=img-media-gallery --branch=preview"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.17",
+    "autoprefixer": "^10.4.22",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.17",
+    "vite": "^5.0.0",
+    "wrangler": "^3.0.0"
+  },
+  "dependencies": {
+    "@img-pro/api": "file:./lib/api",
+    "alpinejs": "^3.13.0"
+  }
+}

@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Img.pro - Media Gallery</title>
+  <meta name="description" content="Manage your images with Img.pro">
+  <link rel="stylesheet" href="/src/style.css">
+</head>
+<body>
+  <div id="app" x-data="mediaGallery">
+    <!-- Header -->
+    <header class="border-b border-gray-200">
+      <div class="max-w-7xl mx-auto px-6 py-4">
+        <div class="flex items-center justify-between">
+          <h1 class="text-xl font-mono">img.pro/media</h1>
+          <div class="flex items-center gap-4">
+            <span x-show="authenticated" class="text-xs font-mono text-gray-500">
+              <span x-text="stats?.count || 0"></span> images
+            </span>
+            <button
+              @click="authenticated ? logout() : login()"
+              class="text-xs font-mono px-3 py-1.5 border border-gray-300 hover:border-gray-400 transition-colors"
+              x-text="authenticated ? 'Logout' : 'Login'">
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-6 py-8">
+      <div x-show="!authenticated" class="text-center py-16">
+        <p class="text-gray-600 mb-6">Enter your API token to view your media library</p>
+
+        <!-- Token Input -->
+        <div class="max-w-md mx-auto space-y-4">
+          <input
+            type="password"
+            x-model="tokenInput"
+            @keyup.enter="setToken()"
+            placeholder="your-api-token-here"
+            class="w-full px-4 py-2 font-mono text-sm border border-gray-300 focus:border-[#0033ff] focus:outline-none">
+
+          <button
+            @click="setToken()"
+            class="w-full px-4 py-2 bg-[#0033ff] text-white hover:bg-[#0028cc] transition-colors">
+            Authenticate
+          </button>
+
+          <p class="text-xs text-gray-500">
+            Get your token from <a :href="authUrl + '/api-keys'" target="_blank" class="text-[#0033ff] underline">img.test/api-keys</a>
+          </p>
+        </div>
+      </div>
+
+      <div x-show="authenticated" x-cloak>
+        <!-- Loading state -->
+        <div x-show="loading && media.length === 0" class="text-center py-16">
+          <p class="text-gray-500">Loading media...</p>
+        </div>
+
+        <!-- Empty state -->
+        <div x-show="!loading && media.length === 0" class="text-center py-16">
+          <p class="text-gray-500">No images uploaded yet</p>
+        </div>
+
+        <!-- Media list -->
+        <div x-show="media.length > 0" class="space-y-1">
+          <template x-for="item in media" :key="item.id">
+            <div class="border border-gray-200 hover:border-gray-300 transition-colors">
+              <div class="px-4 py-3">
+                <!-- First row: Basic info -->
+                <div class="flex items-center justify-between mb-2">
+                  <div class="flex items-center gap-4 flex-1">
+                    <code class="text-xs font-mono text-gray-600">
+                      <span x-text="item.id"></span>
+                    </code>
+                    <span class="text-xs text-gray-500">
+                      <span x-text="item.width"></span>×<span x-text="item.height"></span>
+                    </span>
+                    <span class="text-xs text-gray-500" x-text="formatSize(item.filesize)"></span>
+                    <span class="text-xs text-gray-500" x-text="item.name"></span>
+                  </div>
+                  <button @click="deleteItem(item.id)"
+                          class="text-xs text-red-600 hover:text-red-700 px-2 py-1">
+                    Delete
+                  </button>
+                </div>
+
+                <!-- Second row: Sizes -->
+                <div class="flex items-center gap-2">
+                  <span class="text-xs text-gray-500 mr-2">Sizes:</span>
+
+                  <!-- Size buttons (from largest to smallest) -->
+                  <template x-for="size in ['xxl', 'xl', 'l', 'm', 's']" :key="size">
+                    <div class="flex items-center gap-1">
+                      <button @click="openSize(item, size)"
+                              class="text-xs font-mono px-2 py-1 border transition-colors w-12 text-center"
+                              :class="item.sizes && item.sizes[size] ?
+                                     'border-green-500 text-green-600 hover:bg-green-50' :
+                                     'border-gray-300 text-gray-500 hover:bg-gray-50'">
+                        <span x-text="size.toUpperCase()"></span>
+                      </button>
+                      <button @click="copyUrl(size === 'original' ? item.src : `${item.src}?size=${size}`)"
+                              class="text-xs text-gray-400 hover:text-gray-600 px-1">
+                        <span x-show="copiedUrl === (size === 'original' ? item.src : `${item.src}?size=${size}`)">✓</span>
+                        <span x-show="copiedUrl !== (size === 'original' ? item.src : `${item.src}?size=${size}`)">📋</span>
+                      </button>
+                    </div>
+                  </template>
+
+                  <!-- Original -->
+                  <div class="flex items-center gap-1 ml-2">
+                    <button @click="openSize(item, 'original')"
+                            class="text-xs font-mono px-2 py-1 border border-blue-500 text-blue-600 hover:bg-blue-50 transition-colors">
+                      Original
+                    </button>
+                    <button @click="copyUrl(item.src)"
+                            class="text-xs text-gray-400 hover:text-gray-600 px-1">
+                      <span x-show="copiedUrl === item.src">✓</span>
+                      <span x-show="copiedUrl !== item.src">📋</span>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Third row: Description (if exists) -->
+                <div x-show="item.description" class="mt-2">
+                  <p class="text-xs text-gray-600" x-text="item.description"></p>
+                </div>
+              </div>
+            </div>
+          </template>
+        </div>
+
+        <!-- Load more button -->
+        <div x-show="hasMore" class="text-center py-8">
+          <button @click="loadMore()"
+                  :disabled="loading"
+                  class="px-4 py-2 text-sm border border-gray-300 hover:border-gray-400 transition-colors disabled:opacity-50">
+            <span x-show="!loading">Load More</span>
+            <span x-show="loading">Loading...</span>
+          </button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
